@@ -29,9 +29,17 @@ jobs:
         env:
           DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOKS }}
         run: |
-          if [ -z "$DEPLOY_HOOK" ]; then
+          # strip accidental quotes and whitespace from the secret value
+          HOOK=$(printf '%s' "$DEPLOY_HOOK" | tr -d '"' | tr -d "'" | tr -d '[:space:]')
+          if [ -z "$HOOK" ]; then
             echo "::error::RENDER_DEPLOY_HOOKS secret is empty or not visible to this workflow."
-            echo "Check: repo Settings -> Secrets and variables -> Actions -> Repository secrets."
             exit 1
           fi
-          curl --fail-with-body "$DEPLOY_HOOK"
+          case "$HOOK" in
+            https://*) ;;
+            *)
+              echo "::error::RENDER_DEPLOY_HOOKS value is not a URL. Paste only the deploy hook URL from Render (https://api.render.com/deploy/srv-...)."
+              exit 1
+              ;;
+          esac
+          curl --fail-with-body "$HOOK"

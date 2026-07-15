@@ -43,3 +43,10 @@ jobs:
               ;;
           esac
           curl --fail-with-body "$HOOK"
+      - name: Check deployment health
+        run: |
+          echo "Waiting for the new version to be live on Render..."
+          sleep 60
+          curl --fail --retry 10 --retry-delay 30 --retry-all-errors \
+            https://pokedex-trubit.onrender.com/health
+          echo "Health check passed!"

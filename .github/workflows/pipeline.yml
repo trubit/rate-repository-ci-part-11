@@ -26,4 +26,12 @@ jobs:
       - name: Run Playwright tests
         run: npm run test:e2e
       - name: Trigger deployment
-        run: curl "${{ secrets.RENDER_DEPLOY_HOOK }}"
+        env:
+          DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$DEPLOY_HOOK" ]; then
+            echo "::error::RENDER_DEPLOY_HOOK secret is empty or not visible to this workflow."
+            echo "Check: repo Settings -> Secrets and variables -> Actions -> Repository secrets."
+            exit 1
+          fi
+          curl --fail-with-body "$DEPLOY_HOOK"

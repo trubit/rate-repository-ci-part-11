@@ -1,12 +1,26 @@
-name: Hello World!
+name: Hello World
 
 on:
   push:
+    branches: [main, master]
+  workflow_dispatch:
 
 jobs:
   hello_world_job:
     runs-on: ubuntu-latest
+
     steps:
+      - name: Set up job
+        run: echo "Setting up the job..."
+
       - name: Say hello
-        run: |
-          echo "Hello World!"
+        run: echo "Hello World!"
+
+      - name: Run date
+        run: date
+
+      - name: Run ls -l
+        run: ls -l
+
+      - name: Complete job
+        run: echo "Job completed successfully!"

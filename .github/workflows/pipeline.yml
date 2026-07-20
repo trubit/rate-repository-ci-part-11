@@ -52,7 +52,7 @@ jobs:
           echo "Waiting for the new version to be live on Render..."
           sleep 60
           curl --fail --retry 10 --retry-delay 30 --retry-all-errors \
-            https://pokedex-trubit.onrender.com/health
+            https://pokedex-trubit.onrender.com/
           echo "Health check passed!"
 
   tag_release:

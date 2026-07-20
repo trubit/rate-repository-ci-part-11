@@ -50,8 +50,8 @@ jobs:
       - name: Check deployment health
         run: |
           echo "Waiting for the new version to be live on Render..."
-          sleep 60
-          curl --fail --retry 10 --retry-delay 30 --retry-all-errors \
+          sleep 120
+          curl --fail --retry 10 --retry-delay 60 --retry-all-errors \
             https://pokedex-trubit.onrender.com/
           echo "Health check passed!"
 
@@ -65,3 +65,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DEFAULT_BUMP: patch
+          DRY_RUN: "true"

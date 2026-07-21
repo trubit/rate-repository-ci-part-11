@@ -63,7 +63,7 @@ jobs:
 
   notify_success:
     needs: [deploy]
-    if: ${{ success() && github.event_name == 'push' }}
+    if: ${{ needs.deploy.result == 'success' && github.event_name == 'push' }}
     runs-on: ubuntu-latest
     steps:
       - name: Notify Discord on success
@@ -92,7 +92,7 @@ jobs:
 
   tag_release:
     needs: [deploy]
-    if: ${{ success() && github.event_name == 'push' && github.event.head_commit != null && !contains(github.event.head_commit.message, '#skip') }}
+    if: ${{ needs.deploy.result == 'success' && github.event_name == 'push' && github.event.head_commit != null && !contains(github.event.head_commit.message, '#skip') }}
     runs-on: ubuntu-latest
     steps:
       - name: Bump version and push tag

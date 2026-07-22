@@ -4,15 +4,18 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize]
 
 jobs:
-  simple_deployment_pipeline:
+  build_and_test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
       - name: Install dependencies
         run: npm install
       - name: Check style
@@ -25,6 +28,13 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Run Playwright tests
         run: npm run test:e2e
+
+  deploy:
+    needs: [build_and_test]
+    if: ${{ github.event_name == 'push' && github.event.head_commit != null && !contains(github.event.head_commit.message, '#skip') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
       - name: Trigger deployment
         env:
           DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOKS }}
@@ -43,3 +53,52 @@ jobs:
               ;;
           esac
           curl --fail-with-body "$HOOK"
+      - name: Check deployment health
+        run: |
+          echo "Waiting for the new version to be live on Render..."
+          sleep 120
+          curl --fail --retry 10 --retry-delay 60 --retry-all-errors \
+            https://pokedex-trubit.onrender.com/
+          echo "Health check passed!"
+
+  notify_success:
+    needs: [deploy]
+    if: ${{ needs.deploy.result == 'success' && github.event_name == 'push' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify Discord on success
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook_url: ${{ secrets.DISCORD_WEBHOOK }}
+          status: success
+          title: "✅ Deployment Successful"
+          description: "A new version has been deployed to production!"
+          color: 0x00ff00
+
+  notify_failure:
+    needs: [build_and_test, deploy]
+    if: ${{ failure() && github.event_name == 'push' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify Discord on failure
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook_url: ${{ secrets.DISCORD_WEBHOOK }}
+          status: failure
+          title: "❌ Build Failed"
+          description: |
+            **Branch:** ${{ github.ref_name }}
+            **Run:** [View workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          color: 0xff0000
+
+  tag_release:
+    needs: [deploy]
+    if: ${{ needs.deploy.result == 'success' && github.event_name == 'push' && github.event.head_commit != null && !contains(github.event.head_commit.message, '#skip') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Bump version and push tag
+        uses: anothrNick/github-tag-action@1.75.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEFAULT_BUMP: patch
+          DRY_RUN: "true"

@@ -76,6 +76,7 @@ jobs:
           color: 0x00ff00
 
   notify_failure:
+    needs: [build_and_test, deploy]
     if: ${{ failure() && github.event_name == 'push' }}
     runs-on: ubuntu-latest
     steps:
